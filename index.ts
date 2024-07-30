@@ -12,8 +12,12 @@ const CELLS_PER_ROW = 48;
 const ROWS = CELLS_PER_ROW / 2;
 
 const gameContainer = document.querySelector<HTMLDivElement>(".game-container");
+const gameStatus = document.querySelector<HTMLLabelElement>(".game-status");
+const generationCount = document.querySelector<HTMLSpanElement>(".generation-count");
+
 // 2D array containing all our cells. 0 means black (dead), 1 means white (alive)
-let cells: Array<Array<number>> = new Array(ROWS).fill(0).map(() => new Array(CELLS_PER_ROW).fill(0));
+let cells: Array<Array<number>> = [];
+let gamePaused = false;
 
 function onMouseEnterGameCell(this: HTMLDivElement, _: MouseEvent) {
   const cellElement = this;
@@ -79,13 +83,20 @@ function runGeneration() {
     for (let x = 0; x < cells[y].length; x++) {
       const neighborCount = countNeighbors(new Position(x, y));
       if (neighborCount < 2) cellsCopy[y][x] = 0;
-      // if ((neighborCount == 2 || neighborCount == 3) && cells[y][x] == 1) cellsCopy[y][x] = 1; // do nothing
       if (neighborCount > 3) cellsCopy[y][x] = 0;
       if (neighborCount == 3 && cells[y][x] == 0) cellsCopy[y][x] = 1;
     }
   }
 
   cells = cellsCopy;
+  updateAllCellColors();
+
+  if (generationCount) {
+    generationCount.textContent = (parseInt(generationCount?.textContent || "0") + 1).toString();
+  }
+}
+
+function updateAllCellColors() {
   cells.forEach((row, y) => {
     row.forEach((cell, x) => {
       const element = getCellElementAtPosition(new Position(x, y));
@@ -127,4 +138,39 @@ function constructGrid() {
   }
 }
 
+function playGame() {
+  const delay = (document.querySelector(".option-generation-interval") as HTMLInputElement).valueAsNumber;
+  runGeneration();
+
+  if (!gamePaused) setTimeout(playGame, delay);
+}
+
+function resetGame() {
+  cells = new Array(ROWS).fill(0).map(() => new Array(CELLS_PER_ROW).fill(0));
+  updateAllCellColors();
+
+  if (generationCount) generationCount.textContent = "0";
+}
+
+function pauseGame() {
+  gamePaused = true;
+  updateGameStatus();
+}
+
+function updateGameStatus() {
+  if (gameStatus) {
+    gameStatus.textContent = gamePaused ? "Game paused" : "Game playing";
+  }
+}
+
+document.querySelector(".button-play")?.addEventListener("click", () => {
+  gamePaused = false;
+  updateGameStatus();
+  playGame();
+});
+document.querySelector(".button-pause")?.addEventListener("click", pauseGame);
+document.querySelector(".button-next-generation")?.addEventListener("click", runGeneration);
+document.querySelector(".button-reset")?.addEventListener("click", resetGame);
+
+resetGame();
 constructGrid();

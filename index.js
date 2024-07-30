@@ -1,4 +1,5 @@
 "use strict";
+var _a, _b, _c, _d;
 class Position {
     constructor(x, y) {
         this.x = x;
@@ -8,8 +9,11 @@ class Position {
 const CELLS_PER_ROW = 48;
 const ROWS = CELLS_PER_ROW / 2;
 const gameContainer = document.querySelector(".game-container");
+const gameStatus = document.querySelector(".game-status");
+const generationCount = document.querySelector(".generation-count");
 // 2D array containing all our cells. 0 means black (dead), 1 means white (alive)
-let cells = new Array(ROWS).fill(0).map(() => new Array(CELLS_PER_ROW).fill(0));
+let cells = [];
+let gamePaused = false;
 function onMouseEnterGameCell(_) {
     const cellElement = this;
     cellElement.style.backgroundColor = isCellAlive(this) ? "darkgray" : "lightgray";
@@ -65,7 +69,6 @@ function runGeneration() {
             const neighborCount = countNeighbors(new Position(x, y));
             if (neighborCount < 2)
                 cellsCopy[y][x] = 0;
-            // if ((neighborCount == 2 || neighborCount == 3) && cells[y][x] == 1) cellsCopy[y][x] = 1; // do nothing
             if (neighborCount > 3)
                 cellsCopy[y][x] = 0;
             if (neighborCount == 3 && cells[y][x] == 0)
@@ -73,6 +76,12 @@ function runGeneration() {
         }
     }
     cells = cellsCopy;
+    updateAllCellColors();
+    if (generationCount) {
+        generationCount.textContent = (parseInt((generationCount === null || generationCount === void 0 ? void 0 : generationCount.textContent) || "0") + 1).toString();
+    }
+}
+function updateAllCellColors() {
     cells.forEach((row, y) => {
         row.forEach((cell, x) => {
             const element = getCellElementAtPosition(new Position(x, y));
@@ -109,4 +118,34 @@ function constructGrid() {
         }
     }
 }
+function playGame() {
+    const delay = document.querySelector(".option-generation-interval").valueAsNumber;
+    runGeneration();
+    if (!gamePaused)
+        setTimeout(playGame, delay);
+}
+function resetGame() {
+    cells = new Array(ROWS).fill(0).map(() => new Array(CELLS_PER_ROW).fill(0));
+    updateAllCellColors();
+    if (generationCount)
+        generationCount.textContent = "0";
+}
+function pauseGame() {
+    gamePaused = true;
+    updateGameStatus();
+}
+function updateGameStatus() {
+    if (gameStatus) {
+        gameStatus.textContent = gamePaused ? "Game paused" : "Game playing";
+    }
+}
+(_a = document.querySelector(".button-play")) === null || _a === void 0 ? void 0 : _a.addEventListener("click", () => {
+    gamePaused = false;
+    updateGameStatus();
+    playGame();
+});
+(_b = document.querySelector(".button-pause")) === null || _b === void 0 ? void 0 : _b.addEventListener("click", pauseGame);
+(_c = document.querySelector(".button-next-generation")) === null || _c === void 0 ? void 0 : _c.addEventListener("click", runGeneration);
+(_d = document.querySelector(".button-reset")) === null || _d === void 0 ? void 0 : _d.addEventListener("click", resetGame);
+resetGame();
 constructGrid();
