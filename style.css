@@ -13,6 +13,7 @@ html {
   box-sizing: content-box;
   display: flex;
   flex-wrap: wrap;
+  margin: 0 auto;
 
   width: 128px;
   border: 1px solid white;
