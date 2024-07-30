@@ -1,0 +1,27 @@
+html {
+  box-sizing: border-box;
+  background-color: darkgray;
+}
+
+*,
+*::after,
+*::before {
+  box-sizing: inherit;
+}
+
+.game-container {
+  box-sizing: content-box;
+  display: flex;
+  flex-wrap: wrap;
+
+  width: 128px;
+  border: 1px solid white;
+  border-collapse: collapse;
+}
+
+.game-cell {
+  box-sizing: border-box;
+  border: 1px solid white;
+  background-color: black;
+  border-collapse: collapse;
+}
