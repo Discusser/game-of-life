@@ -8,5 +8,18 @@
   </head>
   <body>
     <div class="game-container"></div>
+    <div class="options">
+      <input type="button" value="Play" class="button-play" />
+      <input type="button" value="Pause" class="button-pause" />
+      <input type="button" value="Next generation" class="button-next-generation" />
+      <input type="button" value="Reset" class="button-reset" />
+      <br />
+      <label for="option-generation-interval">Generation interval (ms): </label>
+      <input type="number" min="1" max="5000" value="200" class="option-generation-interval" />
+    </div>
+    <div class="info">
+      <label class="game-status">Game paused</label>
+      <label>Generation: <span class="generation-count">0</span></label>
+    </div>
   </body>
 </html>
