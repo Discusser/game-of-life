@@ -1,6 +1,6 @@
 html {
   box-sizing: border-box;
-  background-color: darkgray;
+  background-color: black;
 }
 
 *,
@@ -14,15 +14,14 @@ html {
   display: flex;
   flex-wrap: wrap;
   margin: 0 auto;
-
-  width: 128px;
-  border: 1px solid white;
+  width: 1024px;
+  border: 2px solid white;
   border-collapse: collapse;
 }
 
 .game-cell {
   box-sizing: border-box;
-  border: 1px solid white;
   background-color: black;
+  border: 1px solid rgba(100, 100, 100, 0.2);
   border-collapse: collapse;
 }
