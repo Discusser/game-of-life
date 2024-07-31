@@ -1,11 +1,5 @@
-"use strict";
 var _a, _b, _c, _d;
-class Position {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-}
+import { Position, Game } from "./game.js";
 const CELLS_PER_ROW = 48;
 const ROWS = CELLS_PER_ROW / 2;
 const gameContainer = document.querySelector(".game-container");
@@ -147,5 +141,7 @@ function updateGameStatus() {
 (_b = document.querySelector(".button-pause")) === null || _b === void 0 ? void 0 : _b.addEventListener("click", pauseGame);
 (_c = document.querySelector(".button-next-generation")) === null || _c === void 0 ? void 0 : _c.addEventListener("click", runGeneration);
 (_d = document.querySelector(".button-reset")) === null || _d === void 0 ? void 0 : _d.addEventListener("click", resetGame);
-resetGame();
-constructGrid();
+// resetGame();
+// constructGrid();
+const game = new Game(gameContainer);
+requestAnimationFrame((t) => game.drawFrame(t));

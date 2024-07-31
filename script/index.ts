@@ -1,17 +1,9 @@
-class Position {
-  x: number;
-  y: number;
-
-  constructor(x: number, y: number) {
-    this.x = x;
-    this.y = y;
-  }
-}
+import { Position, Game } from "./game.js";
 
 const CELLS_PER_ROW = 48;
 const ROWS = CELLS_PER_ROW / 2;
 
-const gameContainer = document.querySelector<HTMLDivElement>(".game-container");
+const gameContainer = document.querySelector<HTMLCanvasElement>(".game-container");
 const gameStatus = document.querySelector<HTMLLabelElement>(".game-status");
 const generationCount = document.querySelector<HTMLSpanElement>(".generation-count");
 
@@ -172,5 +164,7 @@ document.querySelector(".button-pause")?.addEventListener("click", pauseGame);
 document.querySelector(".button-next-generation")?.addEventListener("click", runGeneration);
 document.querySelector(".button-reset")?.addEventListener("click", resetGame);
 
-resetGame();
-constructGrid();
+// resetGame();
+// constructGrid();
+const game = new Game(gameContainer!);
+requestAnimationFrame((t) => game.drawFrame(t));
