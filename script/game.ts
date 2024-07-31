@@ -61,6 +61,12 @@ export class Game {
   private hoveredCell: Position | undefined;
   private maxFpsValues = 10;
   private fpsValues: Array<number> = new Array(this.maxFpsValues);
+  private canPan: boolean = false;
+  private mouseButtonHeld: number | undefined;
+  private scale: number = 1;
+  private maxScale: number = 3;
+  private minScale: number = 0.6;
+  private mouseMovement: [number, number] = [0, 0];
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -75,6 +81,10 @@ export class Game {
     this.populationCount = populationCount;
     this.ctx = canvas.getContext("2d")!;
 
+    this.canvas.addEventListener("contextmenu", (event) => this.onContextMenuOnCanvas(event));
+    this.canvas.addEventListener("wheel", (event) => this.onScrollOnCanvas(event));
+    this.canvas.addEventListener("mousedown", (event) => this.onMouseDownOnCanvas(event));
+    this.canvas.addEventListener("mouseup", (event) => this.onMouseUpOnCanvas(event));
     this.canvas.addEventListener("mousemove", (event) => this.onMouseMoveOnCanvas(event));
     this.canvas.addEventListener("mouseleave", (event) => this.onMouseLeaveCanvas(event));
     this.canvas.addEventListener("click", (event) => this.onClickOnCanvas(event));
@@ -94,8 +104,9 @@ export class Game {
 
   // Canvas functions
   drawGrid() {
-    const columns = this.canvas.width / this.info.cellSize;
-    const rows = this.canvas.height / this.info.cellSize;
+    // FIXME: scale correctly, at the moment I don't think it scales around the center so the cells and grid are not always aligned
+    const columns = this.canvas.width / (this.info.cellSize * this.scale);
+    const rows = this.canvas.height / (this.info.cellSize * this.scale);
 
     this.ctx.strokeStyle = this.info.cellBorderColor;
     for (let x = 0; x < columns; x++) {
@@ -103,7 +114,10 @@ export class Game {
         this.drawCellBorder(x, y);
       }
     }
+  }
 
+  drawCells() {
+    this.ctx.strokeStyle = this.info.cellBorderColor;
     this.ctx.fillStyle = this.info.cellLiveBackgroundColor;
     this.liveCells.forEach((pos) => {
       this.drawCell(pos.x, pos.y);
@@ -116,8 +130,10 @@ export class Game {
   }
 
   drawCellBorder(column: number, row: number) {
+    const scaledSize = this.info.cellSize * this.scale;
+
     this.ctx.beginPath();
-    this.ctx.rect(column * this.info.cellSize, row * this.info.cellSize, this.info.cellSize, this.info.cellSize);
+    this.ctx.rect(column * scaledSize, row * scaledSize, scaledSize, scaledSize);
     this.ctx.closePath();
     this.ctx.stroke();
   }
@@ -139,8 +155,12 @@ export class Game {
     if (this.fpsValues.length > this.maxFpsValues) this.fpsValues.splice(0, this.fpsValues.length - this.maxFpsValues);
     if (deltaTime != 0) this.fpsValues.push((1 / deltaTime) * 1000);
 
+    const previousTransform = this.ctx.getTransform();
+    this.ctx.setTransform(new DOMMatrixReadOnly());
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.drawGrid();
+    this.ctx.setTransform(previousTransform);
+    this.drawCells();
 
     if (this.elapsed >= this.info.generationInterval) {
       this.elapsed = this.elapsed % this.info.generationInterval;
@@ -153,12 +173,71 @@ export class Game {
   }
 
   // Event handlers
+  onContextMenuOnCanvas(event: MouseEvent) {
+    event.preventDefault();
+  }
+
+  onScrollOnCanvas(event: WheelEvent) {
+    let transform = this.ctx.getTransform();
+    const transformed = this.transformCoordinates(this.canvas.width / 2, this.canvas.height / 2);
+
+    let scaleMultiplier = 1 + 0.2 * Math.sign(event.deltaY);
+    const newScale = transform.a * scaleMultiplier;
+    if (newScale > this.maxScale) scaleMultiplier = this.maxScale / transform.a;
+    else if (newScale < this.minScale) scaleMultiplier = this.minScale / transform.a;
+
+    // transform.e -= transformed.x;
+    // transform.f -= transformed.y;
+    // transform.a += 0.2 * Math.sign(event.deltaY);
+    // transform.a = clamp(transform.a, this.minScale, this.maxScale);
+    // transform.d = transform.a;
+    // transform.e += transformed.x;
+    // transform.f += transformed.y;
+    transform.scaleSelf(scaleMultiplier, scaleMultiplier, 1, transformed.x, transformed.y);
+    this.scale = transform.a;
+
+    this.ctx.setTransform(transform);
+  }
+
+  onMouseDownOnCanvas(event: MouseEvent) {
+    this.mouseButtonHeld = event.button;
+    if (this.mouseButtonHeld == 2) this.canPan = true;
+  }
+
+  onMouseUpOnCanvas(_: MouseEvent) {
+    if (this.mouseButtonHeld == 2) {
+      this.canPan = false;
+      this.mouseMovement = [0, 0];
+    }
+    this.mouseButtonHeld = undefined;
+  }
+
   onMouseMoveOnCanvas(event: MouseEvent) {
-    this.hoveredCell = this.getCellAtCoordinates(event.offsetX, event.offsetY);
+    // Don't display hovered cell when holding right click
+    if (this.mouseButtonHeld == 2) this.hoveredCell = undefined;
+    else this.hoveredCell = this.getCellAtCoordinates(event.offsetX, event.offsetY);
+
+    if (this.canPan) {
+      const transform = this.ctx.getTransform();
+      const scaledSize = this.info.cellSize * this.scale;
+      this.mouseMovement[0] += event.movementX;
+      this.mouseMovement[1] += event.movementY;
+      if (Math.abs(this.mouseMovement[0]) >= scaledSize) {
+        transform.e += Math.trunc(this.mouseMovement[0] / scaledSize) * scaledSize;
+        this.mouseMovement[0] = this.mouseMovement[0] % scaledSize;
+      }
+      if (Math.abs(this.mouseMovement[1]) >= scaledSize) {
+        transform.f += Math.trunc(this.mouseMovement[1] / scaledSize) * scaledSize;
+        this.mouseMovement[1] = this.mouseMovement[1] % scaledSize;
+      }
+      this.ctx.setTransform(transform);
+    }
   }
 
   onMouseLeaveCanvas(_: MouseEvent) {
     this.hoveredCell = undefined;
+    this.mouseButtonHeld = undefined;
+    this.canPan = false;
   }
 
   onClickOnCanvas(event: MouseEvent) {
@@ -270,10 +349,19 @@ export class Game {
   getCellAtCoordinates(x: number, y: number) {
     x = clamp(x, 0, this.canvas.width);
     y = clamp(y, 0, this.canvas.height);
+    const transformed = this.transformCoordinates(x, y);
 
-    const column = Math.trunc(x / this.info.cellSize);
-    const row = Math.trunc(y / this.info.cellSize);
+    const column = Math.trunc(transformed.x / this.info.cellSize);
+    const row = Math.trunc(transformed.y / this.info.cellSize);
 
     return new Position(column, row);
+  }
+
+  transformCoordinates(x: number, y: number) {
+    const transform = this.ctx.getTransform().inverse();
+    return {
+      x: transform.a * x + transform.c * y + transform.e,
+      y: transform.b * x + transform.d * y + transform.f,
+    };
   }
 }
