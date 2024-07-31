@@ -78,6 +78,7 @@ export class Game {
         this.previousTimestamp = timestamp;
         requestAnimationFrame((t) => this.drawFrame(t));
     }
+    // Event handlers
     onMouseMoveOnCanvas(event) {
         this.hoveredCell = this.getCellAtCoordinates(event.offsetX, event.offsetY);
     }
@@ -92,14 +93,16 @@ export class Game {
             this.liveCells.splice(index, 1);
         }
     }
-    getCellAtCoordinates(x, y) {
-        x = clamp(x, 0, this.canvas.width);
-        y = clamp(y, 0, this.canvas.height);
-        const column = Math.trunc(x / this.info.cellSize);
-        const row = Math.trunc(y / this.info.cellSize);
-        return new Position(column, row);
-    }
     // Game functions
+    resetGame() {
+        this.info.generations = 0;
+        this.info.gamePaused = true;
+        this.liveCells = [];
+        this.nextLiveCells = [];
+        this.previousTimestamp = undefined;
+        this.start = undefined;
+        this.elapsed = 0;
+    }
     runGeneration() {
         this.nextLiveCells = structuredClone(this.liveCells);
         const enqueuedCells = this.findCellsThatNeedProcessing();
@@ -159,5 +162,12 @@ export class Game {
                 return i;
         }
         return -1;
+    }
+    getCellAtCoordinates(x, y) {
+        x = clamp(x, 0, this.canvas.width);
+        y = clamp(y, 0, this.canvas.height);
+        const column = Math.trunc(x / this.info.cellSize);
+        const row = Math.trunc(y / this.info.cellSize);
+        return new Position(column, row);
     }
 }

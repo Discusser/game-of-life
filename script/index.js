@@ -135,15 +135,15 @@ function updateGameStatus() {
 }
 const game = new Game(gameContainer);
 (_a = document.querySelector(".button-play")) === null || _a === void 0 ? void 0 : _a.addEventListener("click", () => {
-    gamePaused = false;
-    updateGameStatus();
-    playGame();
+    game.info.gamePaused = false;
 });
-(_b = document.querySelector(".button-pause")) === null || _b === void 0 ? void 0 : _b.addEventListener("click", pauseGame);
+(_b = document.querySelector(".button-pause")) === null || _b === void 0 ? void 0 : _b.addEventListener("click", () => {
+    game.info.gamePaused = true;
+});
 (_c = document.querySelector(".button-next-generation")) === null || _c === void 0 ? void 0 : _c.addEventListener("click", () => {
     game.runGeneration();
 });
-(_d = document.querySelector(".button-reset")) === null || _d === void 0 ? void 0 : _d.addEventListener("click", resetGame);
-// resetGame();
-// constructGrid();
+(_d = document.querySelector(".button-reset")) === null || _d === void 0 ? void 0 : _d.addEventListener("click", () => {
+    game.resetGame();
+});
 requestAnimationFrame((t) => game.drawFrame(t));

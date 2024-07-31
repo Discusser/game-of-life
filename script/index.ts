@@ -158,16 +158,16 @@ function updateGameStatus() {
 const game = new Game(gameContainer!);
 
 document.querySelector(".button-play")?.addEventListener("click", () => {
-  gamePaused = false;
-  updateGameStatus();
-  playGame();
+  game.info.gamePaused = false;
 });
-document.querySelector(".button-pause")?.addEventListener("click", pauseGame);
+document.querySelector(".button-pause")?.addEventListener("click", () => {
+  game.info.gamePaused = true;
+});
 document.querySelector(".button-next-generation")?.addEventListener("click", () => {
   game.runGeneration();
 });
-document.querySelector(".button-reset")?.addEventListener("click", resetGame);
+document.querySelector(".button-reset")?.addEventListener("click", () => {
+  game.resetGame();
+});
 
-// resetGame();
-// constructGrid();
 requestAnimationFrame((t) => game.drawFrame(t));
