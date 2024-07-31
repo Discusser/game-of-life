@@ -9,15 +9,19 @@ const game = new Game(gameContainer, gameStatus, generationCount, populationCoun
 document.querySelector(".button-play")?.addEventListener("click", () => {
   game.info.gamePaused = false;
 });
+
 document.querySelector(".button-pause")?.addEventListener("click", () => {
   game.info.gamePaused = true;
 });
+
 document.querySelector(".button-next-generation")?.addEventListener("click", () => {
   game.runGeneration();
 });
+
 document.querySelector(".button-reset")?.addEventListener("click", () => {
   game.resetGame();
 });
+
 document.querySelector(".option-generation-interval")?.addEventListener("input", (event: Event) => {
   if (event instanceof InputEvent) {
     const inputEvent = event as InputEvent;

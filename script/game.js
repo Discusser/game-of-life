@@ -107,7 +107,7 @@ export class Game {
             this.fpsValues.push((1 / deltaTime) * 1000);
         this.drawGrid();
         if (this.elapsed >= this.info.generationInterval) {
-            this.elapsed -= this.info.generationInterval;
+            this.elapsed = this.elapsed % this.info.generationInterval;
             if (!this.info.gamePaused)
                 this.runGeneration();
         }

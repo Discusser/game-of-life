@@ -144,7 +144,7 @@ export class Game {
     this.drawGrid();
 
     if (this.elapsed >= this.info.generationInterval) {
-      this.elapsed -= this.info.generationInterval;
+      this.elapsed = this.elapsed % this.info.generationInterval;
       if (!this.info.gamePaused) this.runGeneration();
     }
 
