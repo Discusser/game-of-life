@@ -1,3 +1,7 @@
+function clamp(num: number, min: number, max: number) {
+  return Math.min(Math.max(num, min), max);
+}
+
 export class Position {
   x: number;
   y: number;
@@ -15,6 +19,7 @@ export class GameInfo {
   public cellSize: number = 16;
   public cellBorderColor: string | CanvasGradient | CanvasPattern = "rgba(100, 100, 100, 0.3)";
   public cellBackgroundColor: string | CanvasGradient | CanvasPattern = "black";
+  public cellHoverBackgroundColor: string | CanvasGradient | CanvasPattern = "lightgray";
 }
 
 export class Game {
@@ -24,11 +29,15 @@ export class Game {
   private start: DOMHighResTimeStamp | undefined;
   private previousTimestamp: DOMHighResTimeStamp | undefined;
   private elapsed: DOMHighResTimeStamp = 0;
+  private liveCells: Array<Position> = [];
+  private hoveredCell: Position | undefined;
 
   constructor(canvas: HTMLCanvasElement) {
     this.info = new GameInfo();
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d")!;
+
+    this.canvas.addEventListener("mousemove", (event) => this.onMouseMoveOnCanvas(event));
   }
 
   // Canvas functions
@@ -41,13 +50,22 @@ export class Game {
     this.ctx.fillStyle = this.info.cellBackgroundColor;
     for (let x = 0; x < columns; x++) {
       for (let y = 0; y < rows; y++) {
-        this.ctx.beginPath();
-        this.ctx.rect(x * this.info.cellSize, y * this.info.cellSize, this.info.cellSize, this.info.cellSize);
-        this.ctx.closePath();
-        this.ctx.fill();
-        this.ctx.stroke();
+        this.drawCell(x, y);
       }
     }
+
+    if (this.hoveredCell) {
+      this.ctx.fillStyle = this.info.cellHoverBackgroundColor;
+      this.drawCell(this.hoveredCell.x, this.hoveredCell.y);
+    }
+  }
+
+  drawCell(column: number, row: number) {
+    this.ctx.beginPath();
+    this.ctx.rect(column * this.info.cellSize, row * this.info.cellSize, this.info.cellSize, this.info.cellSize);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
   }
 
   drawFrame(timestamp: DOMHighResTimeStamp) {
@@ -64,6 +82,16 @@ export class Game {
 
     this.previousTimestamp = timestamp;
     requestAnimationFrame((t) => this.drawFrame(t));
+  }
+
+  onMouseMoveOnCanvas(event: MouseEvent) {
+    const x = clamp(event.offsetX, 0, this.canvas.width);
+    const y = clamp(event.offsetY, 0, this.canvas.height);
+
+    const column = Math.trunc(x / this.info.cellSize);
+    const row = Math.trunc(y / this.info.cellSize);
+
+    this.hoveredCell = new Position(column, row);
   }
 
   // Game functions
