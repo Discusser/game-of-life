@@ -102,7 +102,7 @@ export class Game {
   private mouseButtonHeld: number | undefined;
   private scale: number = 1;
   private maxScale: number = 3;
-  private minScale: number = 0.6;
+  private minScale: number = 0.05;
   private mouseMovement: [number, number] = [0, 0];
 
   constructor(
@@ -141,7 +141,7 @@ export class Game {
 
   // Canvas functions
   drawGrid() {
-    if (!this.info.drawGrid) return;
+    if (!this.info.drawGrid || this.scale <= 0.5) return;
 
     const transform = this.ctx.getTransform();
     const x1 = Math.floor(-Math.abs(transform.e / this.info.cellSize / this.scale));

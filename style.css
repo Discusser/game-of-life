@@ -37,3 +37,14 @@ html {
   display: flex;
   flex-direction: column;
 }
+
+.extra-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.controls {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+}
