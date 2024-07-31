@@ -8,28 +8,58 @@ export class Position {
     }
 }
 export class GameInfo {
-    constructor() {
+    get generations() {
+        return this._generations;
+    }
+    set generations(value) {
+        this._generations = value;
+        this.game.updateGameStatistics();
+    }
+    get gamePaused() {
+        return this._gamePaused;
+    }
+    set gamePaused(value) {
+        this._gamePaused = value;
+        this.game.updateGameStatus();
+    }
+    constructor(game) {
+        this._generations = 0;
+        this._gamePaused = true;
         this.generationInterval = 200; // this value is stored in ms
-        this.gamePaused = true;
-        this.generations = 0;
         this.cellSize = 16;
         this.cellBorderColor = "rgba(100, 100, 100, 0.3)";
         this.cellBackgroundColor = "black";
         this.cellLiveBackgroundColor = "white";
         this.cellHoverBackgroundColor = "lightgray";
+        this.game = game;
     }
 }
 export class Game {
-    constructor(canvas) {
+    constructor(canvas, gameStatus, generationCount, populationCount) {
         this.elapsed = 0;
         this.nextLiveCells = [];
         this.liveCells = [];
-        this.info = new GameInfo();
+        this.maxFpsValues = 10;
+        this.fpsValues = new Array(this.maxFpsValues);
+        this.info = new GameInfo(this);
         this.canvas = canvas;
+        this.gameStatus = gameStatus;
+        this.generationCount = generationCount;
+        this.populationCount = populationCount;
         this.ctx = canvas.getContext("2d");
         this.canvas.addEventListener("mousemove", (event) => this.onMouseMoveOnCanvas(event));
         this.canvas.addEventListener("mouseleave", (event) => this.onMouseLeaveCanvas(event));
         this.canvas.addEventListener("click", (event) => this.onClickOnCanvas(event));
+    }
+    // HTML functions
+    updateGameStatus() {
+        this.gameStatus.textContent = this.info.gamePaused
+            ? "Game paused"
+            : `Game playing at ${this.getAverageFps().toFixed(1)} fps`;
+    }
+    updateGameStatistics() {
+        this.generationCount.textContent = this.info.generations.toString();
+        this.populationCount.textContent = this.liveCells.length.toString();
     }
     // Canvas functions
     drawGrid() {
@@ -69,7 +99,12 @@ export class Game {
             this.start = timestamp;
         if (this.previousTimestamp === undefined)
             this.previousTimestamp = timestamp;
-        this.elapsed += timestamp - this.previousTimestamp;
+        const deltaTime = timestamp - this.previousTimestamp;
+        this.elapsed += deltaTime;
+        if (this.fpsValues.length > this.maxFpsValues)
+            this.fpsValues.splice(0, this.fpsValues.length - this.maxFpsValues);
+        if (deltaTime != 0)
+            this.fpsValues.push((1 / deltaTime) * 1000);
         this.drawGrid();
         if (this.elapsed >= this.info.generationInterval) {
             this.elapsed -= this.info.generationInterval;
@@ -77,6 +112,7 @@ export class Game {
                 this.runGeneration();
         }
         this.previousTimestamp = timestamp;
+        this.updateGameStatus();
         requestAnimationFrame((t) => this.drawFrame(t));
     }
     // Event handlers
@@ -96,8 +132,14 @@ export class Game {
         else {
             this.liveCells.splice(index, 1);
         }
+        this.updateGameStatistics();
     }
     // Game functions
+    getAverageFps() {
+        if (this.fpsValues.length == 0)
+            return 0;
+        return this.fpsValues.reduce((prev, curr) => prev + curr) / this.fpsValues.length;
+    }
     resetGame() {
         this.info.generations = 0;
         this.info.gamePaused = true;
@@ -106,6 +148,8 @@ export class Game {
         this.previousTimestamp = undefined;
         this.start = undefined;
         this.elapsed = 0;
+        this.updateGameStatistics();
+        this.updateGameStatus();
     }
     runGeneration() {
         this.nextLiveCells = structuredClone(this.liveCells);
@@ -125,6 +169,8 @@ export class Game {
             }
         }
         this.liveCells = this.nextLiveCells;
+        this.info.generations++;
+        this.updateGameStatistics();
     }
     findCellsThatNeedProcessing() {
         const enqueued = [];

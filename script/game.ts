@@ -13,19 +13,45 @@ export class Position {
 }
 
 export class GameInfo {
+  private game: Game;
+  private _generations: number = 0;
+  private _gamePaused: boolean = true;
   public generationInterval: number = 200; // this value is stored in ms
-  public gamePaused: boolean = true;
-  public generations: number = 0;
   public cellSize: number = 16;
   public cellBorderColor: string | CanvasGradient | CanvasPattern = "rgba(100, 100, 100, 0.3)";
   public cellBackgroundColor: string | CanvasGradient | CanvasPattern = "black";
   public cellLiveBackgroundColor: string | CanvasGradient | CanvasPattern = "white";
   public cellHoverBackgroundColor: string | CanvasGradient | CanvasPattern = "lightgray";
+
+  get generations() {
+    return this._generations;
+  }
+
+  set generations(value) {
+    this._generations = value;
+    this.game.updateGameStatistics();
+  }
+
+  get gamePaused() {
+    return this._gamePaused;
+  }
+
+  set gamePaused(value) {
+    this._gamePaused = value;
+    this.game.updateGameStatus();
+  }
+
+  constructor(game: Game) {
+    this.game = game;
+  }
 }
 
 export class Game {
   public info: GameInfo;
   private canvas: HTMLCanvasElement;
+  private gameStatus: HTMLLabelElement;
+  private generationCount: HTMLSpanElement;
+  private populationCount: HTMLSpanElement;
   private ctx: CanvasRenderingContext2D;
   private start: DOMHighResTimeStamp | undefined;
   private previousTimestamp: DOMHighResTimeStamp | undefined;
@@ -33,15 +59,37 @@ export class Game {
   private nextLiveCells: Array<Position> = [];
   private liveCells: Array<Position> = [];
   private hoveredCell: Position | undefined;
+  private maxFpsValues = 10;
+  private fpsValues: Array<number> = new Array(this.maxFpsValues);
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.info = new GameInfo();
+  constructor(
+    canvas: HTMLCanvasElement,
+    gameStatus: HTMLLabelElement,
+    generationCount: HTMLSpanElement,
+    populationCount: HTMLSpanElement,
+  ) {
+    this.info = new GameInfo(this);
     this.canvas = canvas;
+    this.gameStatus = gameStatus;
+    this.generationCount = generationCount;
+    this.populationCount = populationCount;
     this.ctx = canvas.getContext("2d")!;
 
     this.canvas.addEventListener("mousemove", (event) => this.onMouseMoveOnCanvas(event));
     this.canvas.addEventListener("mouseleave", (event) => this.onMouseLeaveCanvas(event));
     this.canvas.addEventListener("click", (event) => this.onClickOnCanvas(event));
+  }
+
+  // HTML functions
+  updateGameStatus() {
+    this.gameStatus.textContent = this.info.gamePaused
+      ? "Game paused"
+      : `Game playing at ${this.getAverageFps().toFixed(1)} fps`;
+  }
+
+  updateGameStatistics() {
+    this.generationCount.textContent = this.info.generations.toString();
+    this.populationCount.textContent = this.liveCells.length.toString();
   }
 
   // Canvas functions
@@ -87,7 +135,11 @@ export class Game {
   drawFrame(timestamp: DOMHighResTimeStamp) {
     if (this.start === undefined) this.start = timestamp;
     if (this.previousTimestamp === undefined) this.previousTimestamp = timestamp;
-    this.elapsed += timestamp - this.previousTimestamp;
+    const deltaTime = timestamp - this.previousTimestamp;
+    this.elapsed += deltaTime;
+
+    if (this.fpsValues.length > this.maxFpsValues) this.fpsValues.splice(0, this.fpsValues.length - this.maxFpsValues);
+    if (deltaTime != 0) this.fpsValues.push((1 / deltaTime) * 1000);
 
     this.drawGrid();
 
@@ -97,6 +149,7 @@ export class Game {
     }
 
     this.previousTimestamp = timestamp;
+    this.updateGameStatus();
     requestAnimationFrame((t) => this.drawFrame(t));
   }
 
@@ -119,9 +172,17 @@ export class Game {
     } else {
       this.liveCells.splice(index, 1);
     }
+
+    this.updateGameStatistics();
   }
 
   // Game functions
+  getAverageFps() {
+    if (this.fpsValues.length == 0) return 0;
+
+    return this.fpsValues.reduce((prev, curr) => prev + curr) / this.fpsValues.length;
+  }
+
   resetGame() {
     this.info.generations = 0;
     this.info.gamePaused = true;
@@ -130,6 +191,9 @@ export class Game {
     this.previousTimestamp = undefined;
     this.start = undefined;
     this.elapsed = 0;
+
+    this.updateGameStatistics();
+    this.updateGameStatus();
   }
 
   runGeneration() {
@@ -150,6 +214,8 @@ export class Game {
     }
 
     this.liveCells = this.nextLiveCells;
+    this.info.generations++;
+    this.updateGameStatistics();
   }
 
   findCellsThatNeedProcessing() {
