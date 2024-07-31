@@ -111,8 +111,8 @@ export class Game {
     const y2 = Math.ceil(this.canvas.height / this.info.cellSize / this.scale - y1);
 
     this.ctx.strokeStyle = this.info.cellBorderColor;
-    for (let x = x2; x > x1; x--) {
-      for (let y = y2; y > y1; y--) {
+    for (let x = x2; x >= x1; x--) {
+      for (let y = y2; y >= y1; y--) {
         this.drawCellBorder(x, y, this.info.cellSize);
       }
     }
@@ -128,13 +128,10 @@ export class Game {
     if (this.hoveredCell) {
       this.ctx.fillStyle = this.info.cellHoverBackgroundColor;
       this.drawCell(this.hoveredCell.x, this.hoveredCell.y, this.info.cellSize);
-      console.log(this.hoveredCell);
     }
   }
 
   drawCellBorder(column: number, row: number, cellSize: number) {
-    if (column > 20 && column < 30 && row > 20 && row < 30) this.ctx.strokeStyle = "red";
-    else this.ctx.strokeStyle = this.info.cellBorderColor;
     this.ctx.beginPath();
     this.ctx.rect(column * cellSize, row * cellSize, cellSize, cellSize);
     this.ctx.closePath();
