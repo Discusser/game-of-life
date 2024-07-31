@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="style.css" />
-    <script src="index.js" defer></script>
+    <script type="module" src="script/index.js" defer></script>
     <title>Game of Life</title>
   </head>
   <body>
-    <div class="game-container"></div>
+    <canvas class="game-container" width="1024" height="512"></canvas>
     <div class="options">
       <input type="button" value="Play" class="button-play" />
       <input type="button" value="Pause" class="button-pause" />
@@ -20,6 +20,7 @@
     <div class="info">
       <label class="game-status">Game paused</label>
       <label>Generation: <span class="generation-count">0</span></label>
+      <label>Population: <span class="population-count">0</span></label>
     </div>
   </body>
 </html>
