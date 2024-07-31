@@ -28,6 +28,7 @@ export class Game {
         this.canvas = canvas;
         this.ctx = canvas.getContext("2d");
         this.canvas.addEventListener("mousemove", (event) => this.onMouseMoveOnCanvas(event));
+        this.canvas.addEventListener("mouseleave", (event) => this.onMouseLeaveCanvas(event));
         this.canvas.addEventListener("click", (event) => this.onClickOnCanvas(event));
     }
     // Canvas functions
@@ -81,6 +82,9 @@ export class Game {
     // Event handlers
     onMouseMoveOnCanvas(event) {
         this.hoveredCell = this.getCellAtCoordinates(event.offsetX, event.offsetY);
+    }
+    onMouseLeaveCanvas(_) {
+        this.hoveredCell = undefined;
     }
     onClickOnCanvas(event) {
         const position = this.getCellAtCoordinates(event.offsetX, event.offsetY);
