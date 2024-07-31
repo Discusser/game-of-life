@@ -119,7 +119,7 @@ export class Game {
     this.ctx = canvas.getContext("2d")!;
 
     this.canvas.addEventListener("contextmenu", (event) => this.onContextMenuOnCanvas(event));
-    this.canvas.addEventListener("wheel", (event) => this.onScrollOnCanvas(event));
+    this.canvas.addEventListener("wheel", (event) => this.onWheelOnCanvas(event));
     this.canvas.addEventListener("mousedown", (event) => this.onMouseDownOnCanvas(event));
     this.canvas.addEventListener("mouseup", (event) => this.onMouseUpOnCanvas(event));
     this.canvas.addEventListener("mousemove", (event) => this.onMouseMoveOnCanvas(event));
@@ -213,7 +213,7 @@ export class Game {
     event.preventDefault();
   }
 
-  onScrollOnCanvas(event: WheelEvent) {
+  onWheelOnCanvas(event: WheelEvent) {
     const transform = this.ctx.getTransform();
     const transformed = this.transformCoordinates(this.canvas.width / 2, this.canvas.height / 2);
 
