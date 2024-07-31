@@ -22,6 +22,10 @@ document.querySelector(".button-reset")?.addEventListener("click", () => {
   game.resetGame();
 });
 
+document.querySelector(".button-toggle-grid")?.addEventListener("click", () => {
+  game.info.drawGrid = !game.info.drawGrid;
+});
+
 document.querySelector(".option-generation-interval")?.addEventListener("input", (event: Event) => {
   if (event instanceof InputEvent) {
     const inputEvent = event as InputEvent;

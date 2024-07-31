@@ -2,13 +2,49 @@ function clamp(num: number, min: number, max: number) {
   return Math.min(Math.max(num, min), max);
 }
 
-export class Position {
+class GeneralSet<T extends StringHashable> {
+  public map: Map<string, T>;
+
+  constructor(other?: GeneralSet<T>) {
+    if (other) {
+      this.map = new Map(other.map);
+    } else {
+      this.map = new Map();
+    }
+  }
+
+  add(item: T) {
+    this.map.set(item.hash(), item);
+  }
+
+  values() {
+    return this.map.values();
+  }
+
+  delete(item: T) {
+    return this.map.delete(item.hash());
+  }
+
+  has(item: T) {
+    return this.map.has(item.hash());
+  }
+}
+
+interface StringHashable {
+  hash(): string;
+}
+
+class Position implements StringHashable {
   x: number;
   y: number;
 
   constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
+  }
+
+  hash(): string {
+    return `${this.x}-${this.y}`;
   }
 }
 
@@ -22,6 +58,7 @@ export class GameInfo {
   public cellBackgroundColor: string | CanvasGradient | CanvasPattern = "black";
   public cellLiveBackgroundColor: string | CanvasGradient | CanvasPattern = "white";
   public cellHoverBackgroundColor: string | CanvasGradient | CanvasPattern = "lightgray";
+  public drawGrid: boolean = true;
 
   get generations() {
     return this._generations;
@@ -56,8 +93,8 @@ export class Game {
   private start: DOMHighResTimeStamp | undefined;
   private previousTimestamp: DOMHighResTimeStamp | undefined;
   private elapsed: DOMHighResTimeStamp = 0;
-  private nextLiveCells: Array<Position> = [];
-  private liveCells: Array<Position> = [];
+  private nextLiveCells: GeneralSet<Position> = new GeneralSet();
+  private liveCells: GeneralSet<Position> = new GeneralSet();
   private hoveredCell: Position | undefined;
   private maxFpsValues = 10;
   private fpsValues: Array<number> = new Array(this.maxFpsValues);
@@ -99,11 +136,13 @@ export class Game {
 
   updateGameStatistics() {
     this.generationCount.textContent = this.info.generations.toString();
-    this.populationCount.textContent = this.liveCells.length.toString();
+    this.populationCount.textContent = this.liveCells.map.size.toString();
   }
 
   // Canvas functions
   drawGrid() {
+    if (!this.info.drawGrid) return;
+
     const transform = this.ctx.getTransform();
     const x1 = Math.floor(-Math.abs(transform.e / this.info.cellSize / this.scale));
     const y1 = Math.floor(-Math.abs(transform.f / this.info.cellSize / this.scale));
@@ -121,7 +160,7 @@ export class Game {
   drawCells() {
     this.ctx.strokeStyle = this.info.cellBorderColor;
     this.ctx.fillStyle = this.info.cellLiveBackgroundColor;
-    this.liveCells.forEach((pos) => {
+    this.liveCells.map.forEach((pos) => {
       this.drawCell(pos.x, pos.y, this.info.cellSize);
     });
 
@@ -232,13 +271,11 @@ export class Game {
 
   onClickOnCanvas(event: MouseEvent) {
     const position = this.getCellAtCoordinates(event.offsetX, event.offsetY);
-    const index = this.indexOfPosition(position, this.liveCells);
 
-    // If the cell is not live
-    if (index == -1) {
-      this.liveCells.push(position);
+    if (this.liveCells.has(position)) {
+      this.liveCells.delete(position);
     } else {
-      this.liveCells.splice(index, 1);
+      this.liveCells.add(position);
     }
 
     this.updateGameStatistics();
@@ -254,8 +291,8 @@ export class Game {
   resetGame() {
     this.info.generations = 0;
     this.info.gamePaused = true;
-    this.liveCells = [];
-    this.nextLiveCells = [];
+    this.liveCells = new GeneralSet();
+    this.nextLiveCells = new GeneralSet();
     this.previousTimestamp = undefined;
     this.start = undefined;
     this.elapsed = 0;
@@ -265,19 +302,19 @@ export class Game {
   }
 
   runGeneration() {
-    this.nextLiveCells = structuredClone(this.liveCells);
+    this.nextLiveCells = new GeneralSet(this.liveCells);
 
-    const enqueuedCells: Array<Position> = this.findCellsThatNeedProcessing();
-    for (const cell of enqueuedCells) {
+    const enqueuedCells = this.findCellsThatNeedProcessing();
+    for (const [_, cell] of enqueuedCells.map) {
       const liveNeighborCount = this.getLiveNeighbors(cell).length;
       const isAlive = this.isCellAlive(cell);
-      let index = -1;
-      if (liveNeighborCount < 2 && isAlive) index = this.indexOfPosition(cell, this.nextLiveCells);
-      if (liveNeighborCount > 3 && isAlive) index = this.indexOfPosition(cell, this.nextLiveCells);
-      if (liveNeighborCount == 3 && !isAlive) this.nextLiveCells.push(cell);
+      let shouldKill = false;
+      if (liveNeighborCount < 2 && isAlive) shouldKill = this.nextLiveCells.has(cell);
+      if (liveNeighborCount > 3 && isAlive) shouldKill = this.nextLiveCells.has(cell);
+      if (liveNeighborCount == 3 && !isAlive) this.nextLiveCells.add(cell);
 
-      if (index != -1) {
-        this.nextLiveCells.splice(index, 1);
+      if (shouldKill) {
+        this.nextLiveCells.delete(cell);
       }
     }
 
@@ -287,15 +324,13 @@ export class Game {
   }
 
   findCellsThatNeedProcessing() {
-    const enqueued: Array<Position> = [];
-    for (const cell of this.liveCells) {
-      enqueued.push(cell);
+    const enqueued: GeneralSet<Position> = new GeneralSet();
+    for (const [_, cell] of this.liveCells.map) {
+      enqueued.add(cell);
 
       const neighbors = this.getNeighbors(cell);
       for (const neighbor of neighbors) {
-        if (!this.isPositionInArray(neighbor, enqueued)) {
-          enqueued.push(neighbor);
-        }
+        enqueued.add(neighbor);
       }
     }
 
@@ -321,19 +356,7 @@ export class Game {
   }
 
   isCellAlive(pos: Position) {
-    return this.isPositionInArray(pos, this.liveCells);
-  }
-
-  isPositionInArray(pos: Position, arr: Array<Position>) {
-    return this.indexOfPosition(pos, arr) != -1;
-  }
-
-  indexOfPosition(pos: Position, arr: Array<Position>) {
-    for (let i = 0; i < arr.length; i++) {
-      if (arr[i].x == pos.x && arr[i].y == pos.y) return i;
-    }
-
-    return -1;
+    return this.liveCells.has(pos);
   }
 
   getCellAtCoordinates(x: number, y: number) {
