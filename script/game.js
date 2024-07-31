@@ -22,6 +22,7 @@ export class GameInfo {
 export class Game {
     constructor(canvas) {
         this.elapsed = 0;
+        this.nextLiveCells = [];
         this.liveCells = [];
         this.info = new GameInfo();
         this.canvas = canvas;
@@ -82,20 +83,12 @@ export class Game {
     }
     onClickOnCanvas(event) {
         const position = this.getCellAtCoordinates(event.offsetX, event.offsetY);
-        let index = -1;
-        for (let i = 0; i < this.liveCells.length; i++) {
-            if (this.liveCells[i].x == position.x && this.liveCells[i].y == position.y) {
-                index = i;
-                break;
-            }
-        }
+        const index = this.indexOfPosition(position, this.liveCells);
         // If the cell is not live
         if (index == -1) {
-            console.log("dead");
             this.liveCells.push(position);
         }
         else {
-            console.log("live");
             this.liveCells.splice(index, 1);
         }
     }
@@ -107,9 +100,64 @@ export class Game {
         return new Position(column, row);
     }
     // Game functions
-    runGeneration() { }
+    runGeneration() {
+        this.nextLiveCells = structuredClone(this.liveCells);
+        const enqueuedCells = this.findCellsThatNeedProcessing();
+        for (const cell of enqueuedCells) {
+            const liveNeighborCount = this.getLiveNeighbors(cell).length;
+            const isAlive = this.isCellAlive(cell);
+            let index = -1;
+            if (liveNeighborCount < 2 && isAlive)
+                index = this.indexOfPosition(cell, this.nextLiveCells);
+            if (liveNeighborCount > 3 && isAlive)
+                index = this.indexOfPosition(cell, this.nextLiveCells);
+            if (liveNeighborCount == 3 && !isAlive)
+                this.nextLiveCells.push(cell);
+            if (index != -1) {
+                this.nextLiveCells.splice(index, 1);
+            }
+        }
+        this.liveCells = this.nextLiveCells;
+    }
+    findCellsThatNeedProcessing() {
+        const enqueued = [];
+        for (const cell of this.liveCells) {
+            enqueued.push(cell);
+            const neighbors = this.getNeighbors(cell);
+            for (const neighbor of neighbors) {
+                if (!this.isPositionInArray(neighbor, enqueued)) {
+                    enqueued.push(neighbor);
+                }
+            }
+        }
+        return enqueued;
+    }
     // Cell functions
-    isPositionValid(position) { }
-    isCellAlive(position) { }
-    countNeighbors(position) { }
+    getLiveNeighbors(pos) {
+        return this.getNeighbors(pos).filter((pos) => this.isCellAlive(pos));
+    }
+    getNeighbors(pos) {
+        const neighbors = [];
+        for (let x = -1; x <= 1; x++) {
+            for (let y = -1; y <= 1; y++) {
+                if (x == 0 && y == 0)
+                    continue;
+                neighbors.push(new Position(pos.x + x, pos.y + y));
+            }
+        }
+        return neighbors;
+    }
+    isCellAlive(pos) {
+        return this.isPositionInArray(pos, this.liveCells);
+    }
+    isPositionInArray(pos, arr) {
+        return this.indexOfPosition(pos, arr) != -1;
+    }
+    indexOfPosition(pos, arr) {
+        for (let i = 0; i < arr.length; i++) {
+            if (arr[i].x == pos.x && arr[i].y == pos.y)
+                return i;
+        }
+        return -1;
+    }
 }

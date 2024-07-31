@@ -133,15 +133,17 @@ function updateGameStatus() {
         gameStatus.textContent = gamePaused ? "Game paused" : "Game playing";
     }
 }
+const game = new Game(gameContainer);
 (_a = document.querySelector(".button-play")) === null || _a === void 0 ? void 0 : _a.addEventListener("click", () => {
     gamePaused = false;
     updateGameStatus();
     playGame();
 });
 (_b = document.querySelector(".button-pause")) === null || _b === void 0 ? void 0 : _b.addEventListener("click", pauseGame);
-(_c = document.querySelector(".button-next-generation")) === null || _c === void 0 ? void 0 : _c.addEventListener("click", runGeneration);
+(_c = document.querySelector(".button-next-generation")) === null || _c === void 0 ? void 0 : _c.addEventListener("click", () => {
+    game.runGeneration();
+});
 (_d = document.querySelector(".button-reset")) === null || _d === void 0 ? void 0 : _d.addEventListener("click", resetGame);
 // resetGame();
 // constructGrid();
-const game = new Game(gameContainer);
 requestAnimationFrame((t) => game.drawFrame(t));

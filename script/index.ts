@@ -155,16 +155,19 @@ function updateGameStatus() {
   }
 }
 
+const game = new Game(gameContainer!);
+
 document.querySelector(".button-play")?.addEventListener("click", () => {
   gamePaused = false;
   updateGameStatus();
   playGame();
 });
 document.querySelector(".button-pause")?.addEventListener("click", pauseGame);
-document.querySelector(".button-next-generation")?.addEventListener("click", runGeneration);
+document.querySelector(".button-next-generation")?.addEventListener("click", () => {
+  game.runGeneration();
+});
 document.querySelector(".button-reset")?.addEventListener("click", resetGame);
 
 // resetGame();
 // constructGrid();
-const game = new Game(gameContainer!);
 requestAnimationFrame((t) => game.drawFrame(t));
