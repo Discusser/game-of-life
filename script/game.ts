@@ -94,8 +94,6 @@ export class Game {
 
   // Canvas functions
   drawGrid() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
     const columns = this.canvas.width / this.info.cellSize;
     const rows = this.canvas.height / this.info.cellSize;
 
@@ -141,6 +139,7 @@ export class Game {
     if (this.fpsValues.length > this.maxFpsValues) this.fpsValues.splice(0, this.fpsValues.length - this.maxFpsValues);
     if (deltaTime != 0) this.fpsValues.push((1 / deltaTime) * 1000);
 
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.drawGrid();
 
     if (this.elapsed >= this.info.generationInterval) {
