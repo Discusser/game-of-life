@@ -26,6 +26,7 @@ export class Game {
         this.canvas = canvas;
         this.ctx = canvas.getContext("2d");
         this.canvas.addEventListener("mousemove", (event) => this.onMouseMoveOnCanvas(event));
+        this.canvas.addEventListener("click", (event) => this.onClickOnCanvas(event));
     }
     // Canvas functions
     drawGrid() {
@@ -67,11 +68,33 @@ export class Game {
         requestAnimationFrame((t) => this.drawFrame(t));
     }
     onMouseMoveOnCanvas(event) {
-        const x = clamp(event.offsetX, 0, this.canvas.width);
-        const y = clamp(event.offsetY, 0, this.canvas.height);
+        this.hoveredCell = this.getCellAtCoordinates(event.offsetX, event.offsetY);
+    }
+    onClickOnCanvas(event) {
+        const position = this.getCellAtCoordinates(event.offsetX, event.offsetY);
+        let index = -1;
+        for (let i = 0; i < this.liveCells.length; i++) {
+            if (this.liveCells[i].x == position.x && this.liveCells[i].y == position.y) {
+                index = i;
+                break;
+            }
+        }
+        // If the cell is not live
+        if (index == -1) {
+            console.log("dead");
+            this.liveCells.push(position);
+        }
+        else {
+            console.log("live");
+            this.liveCells.splice(index, 1);
+        }
+    }
+    getCellAtCoordinates(x, y) {
+        x = clamp(x, 0, this.canvas.width);
+        y = clamp(y, 0, this.canvas.height);
         const column = Math.trunc(x / this.info.cellSize);
         const row = Math.trunc(y / this.info.cellSize);
-        this.hoveredCell = new Position(column, row);
+        return new Position(column, row);
     }
     // Game functions
     runGeneration() { }
