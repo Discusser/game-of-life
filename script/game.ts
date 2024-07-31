@@ -19,6 +19,7 @@ export class GameInfo {
   public cellSize: number = 16;
   public cellBorderColor: string | CanvasGradient | CanvasPattern = "rgba(100, 100, 100, 0.3)";
   public cellBackgroundColor: string | CanvasGradient | CanvasPattern = "black";
+  public cellLiveBackgroundColor: string | CanvasGradient | CanvasPattern = "white";
   public cellHoverBackgroundColor: string | CanvasGradient | CanvasPattern = "lightgray";
 }
 
@@ -47,18 +48,30 @@ export class Game {
 
     const columns = this.canvas.width / this.info.cellSize;
     const rows = this.canvas.height / this.info.cellSize;
+
     this.ctx.strokeStyle = this.info.cellBorderColor;
-    this.ctx.fillStyle = this.info.cellBackgroundColor;
     for (let x = 0; x < columns; x++) {
       for (let y = 0; y < rows; y++) {
-        this.drawCell(x, y);
+        this.drawCellBorder(x, y);
       }
     }
+
+    this.ctx.fillStyle = this.info.cellLiveBackgroundColor;
+    this.liveCells.forEach((pos) => {
+      this.drawCell(pos.x, pos.y);
+    });
 
     if (this.hoveredCell) {
       this.ctx.fillStyle = this.info.cellHoverBackgroundColor;
       this.drawCell(this.hoveredCell.x, this.hoveredCell.y);
     }
+  }
+
+  drawCellBorder(column: number, row: number) {
+    this.ctx.beginPath();
+    this.ctx.rect(column * this.info.cellSize, row * this.info.cellSize, this.info.cellSize, this.info.cellSize);
+    this.ctx.closePath();
+    this.ctx.stroke();
   }
 
   drawCell(column: number, row: number) {
