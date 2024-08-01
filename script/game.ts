@@ -168,9 +168,8 @@ export class Game {
 
   // HTML functions
   updateGameStatus() {
-    this.gameStatus.textContent = this.info.gamePaused
-      ? "Game paused"
-      : `Game playing at ${this.getAverageFps().toFixed(1)} fps`;
+    const fpsText = `at ${this.getAverageFps().toFixed(1)} fps`;
+    this.gameStatus.textContent = this.info.gamePaused ? `Game paused ${fpsText}` : `Game playing ${fpsText}`;
   }
 
   updateGameStatistics() {
@@ -334,7 +333,7 @@ export class Game {
   getAverageFps() {
     if (this.fpsValues.length == 0) return 0;
 
-    return this.fpsValues.reduce((prev, curr) => prev + curr) / this.fpsValues.length;
+    return this.fpsValues.reduce((prev, curr) => prev + curr, 0) / this.fpsValues.length;
   }
 
   resetGame() {
