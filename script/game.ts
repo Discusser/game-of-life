@@ -99,9 +99,12 @@ export class Game {
   private gameStatus: HTMLLabelElement;
   private generationCount: HTMLSpanElement;
   private populationCount: HTMLSpanElement;
-  private start: DOMHighResTimeStamp | undefined;
-  private previousTimestamp: DOMHighResTimeStamp | undefined;
-  private elapsed: DOMHighResTimeStamp = 0;
+  private renderStart: DOMHighResTimeStamp | undefined;
+  private renderPreviousTimestamp: DOMHighResTimeStamp | undefined;
+  private renderElapsed: DOMHighResTimeStamp = 0;
+  private simulationStart: DOMHighResTimeStamp | undefined;
+  private simulationPreviousTimestamp: DOMHighResTimeStamp | undefined;
+  private simulationElapsed: DOMHighResTimeStamp = 0;
   private nextLiveCells: GeneralSet<Position> = new GeneralSet();
   private liveCells: GeneralSet<Position> = new GeneralSet();
   private hoveredCell: Position | undefined;
@@ -135,7 +138,25 @@ export class Game {
     this.renderer.canvas.addEventListener("click", (event) => this.onClickOnCanvas(event));
   }
 
-  gameLoop() { }
+  startGame() {
+    setInterval(() => this.update(), 1);
+    requestAnimationFrame((t) => this.drawFrame(t));
+  }
+
+  update() {
+    const timestamp = performance.now();
+    if (this.simulationStart === undefined) this.simulationStart = timestamp;
+    if (this.simulationPreviousTimestamp === undefined) this.simulationPreviousTimestamp = timestamp;
+    const deltaTime = timestamp - this.simulationPreviousTimestamp;
+    this.simulationElapsed += deltaTime;
+
+    if (this.simulationElapsed >= this.info.generationInterval) {
+      this.simulationElapsed = this.simulationElapsed % this.info.generationInterval;
+      if (!this.info.gamePaused) this.runGeneration();
+    }
+
+    this.simulationPreviousTimestamp = timestamp;
+  }
 
   // HTML functions
   updateGameStatus() {
@@ -193,10 +214,10 @@ export class Game {
   }
 
   drawFrame(timestamp: DOMHighResTimeStamp) {
-    if (this.start === undefined) this.start = timestamp;
-    if (this.previousTimestamp === undefined) this.previousTimestamp = timestamp;
-    const deltaTime = timestamp - this.previousTimestamp;
-    this.elapsed += deltaTime;
+    if (this.renderStart === undefined) this.renderStart = timestamp;
+    if (this.renderPreviousTimestamp === undefined) this.renderPreviousTimestamp = timestamp;
+    const deltaTime = timestamp - this.renderPreviousTimestamp;
+    this.renderElapsed += deltaTime;
 
     if (this.fpsValues.length > this.maxFpsValues) this.fpsValues.splice(0, this.fpsValues.length - this.maxFpsValues);
     if (deltaTime != 0) this.fpsValues.push((1 / deltaTime) * 1000);
@@ -207,14 +228,9 @@ export class Game {
     this.renderer.ctx.setTransform(previousTransform);
     this.drawGrid();
     this.drawCells();
-
-    if (this.elapsed >= this.info.generationInterval) {
-      this.elapsed = this.elapsed % this.info.generationInterval;
-      if (!this.info.gamePaused) this.runGeneration();
-    }
-
-    this.previousTimestamp = timestamp;
     this.updateGameStatus();
+
+    this.renderPreviousTimestamp = timestamp;
     requestAnimationFrame((t) => this.drawFrame(t));
   }
 
@@ -303,9 +319,9 @@ export class Game {
     this.info.gamePaused = true;
     this.liveCells = new GeneralSet();
     this.nextLiveCells = new GeneralSet();
-    this.previousTimestamp = undefined;
-    this.start = undefined;
-    this.elapsed = 0;
+    this.renderPreviousTimestamp = undefined;
+    this.renderStart = undefined;
+    this.renderElapsed = 0;
 
     this.updateGameStatistics();
     this.updateGameStatus();

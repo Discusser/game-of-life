@@ -35,4 +35,4 @@ document.querySelector(".option-generation-interval")?.addEventListener("input",
   }
 });
 
-requestAnimationFrame((t) => game.drawFrame(t));
+game.startGame();
