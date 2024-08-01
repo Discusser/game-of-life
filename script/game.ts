@@ -85,6 +85,7 @@ export class GameInfo {
   }
 
   set generationInterval(value) {
+    if (isNaN(value) || !isFinite(value) || value == null) return;
     this._generationInterval = Math.max(value, 1);
   }
 
@@ -203,7 +204,6 @@ export class Game {
     const y1 = Math.floor(-transform.f / this.info.cellSize / this.scale);
     const x2 = Math.ceil(this.renderer.canvas.width / this.info.cellSize / this.scale) + x1;
     const y2 = Math.ceil(this.renderer.canvas.height / this.info.cellSize / this.scale) + y1;
-    console.log(`${x2 - x1} columns and ${y2 - y1} rows`);
 
     this.renderer.ctx.strokeStyle = this.info.cellBorderColor;
     for (let x = x2; x >= x1; x--) {
