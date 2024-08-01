@@ -60,6 +60,7 @@ export class GameInfo {
   public cellHoverBackgroundColor: string | CanvasGradient | CanvasPattern = "lightgray";
   public drawGrid: boolean = true;
   public drawMode: DrawMode = DrawMode.Create;
+  public drawHover: boolean = true;
 
   get generations() {
     return this._generations;
@@ -111,6 +112,7 @@ export class Game {
   private gameStatus: HTMLLabelElement;
   private generationCount: HTMLSpanElement;
   private populationCount: HTMLSpanElement;
+  private buttonDrawMode: HTMLInputElement;
   private renderPreviousTimestamp: DOMHighResTimeStamp | undefined;
   private renderElapsed: DOMHighResTimeStamp = 0;
   private simulationPreviousTimestamp: DOMHighResTimeStamp | undefined;
@@ -131,12 +133,14 @@ export class Game {
     gameStatus: HTMLLabelElement,
     generationCount: HTMLSpanElement,
     populationCount: HTMLSpanElement,
+    buttonDrawMode: HTMLInputElement,
   ) {
     this.info = new GameInfo(this);
     this.renderer = new GameRenderer(canvas);
     this.gameStatus = gameStatus;
     this.generationCount = generationCount;
     this.populationCount = populationCount;
+    this.buttonDrawMode = buttonDrawMode;
 
     this.renderer.canvas.addEventListener("contextmenu", (event) => this.onContextMenuOnCanvas(event));
     this.renderer.canvas.addEventListener("wheel", (event) => this.onWheelOnCanvas(event));
@@ -172,6 +176,11 @@ export class Game {
     this.gameStatus.textContent = this.info.gamePaused ? `Game paused ${fpsText}` : `Game playing ${fpsText}`;
   }
 
+  switchDrawMode() {
+    this.info.drawMode = this.info.drawMode == DrawMode.Create ? DrawMode.Erase : DrawMode.Create;
+    this.buttonDrawMode.value = this.info.drawMode == DrawMode.Create ? "Create mode" : "Erase mode";
+  }
+
   updateGameStatistics() {
     this.generationCount.textContent = this.info.generations.toString();
     this.populationCount.textContent = this.liveCells.map.size.toString();
@@ -205,7 +214,7 @@ export class Game {
       this.drawCellBorder(pos.x, pos.y, this.info.cellSize);
     });
 
-    if (this.hoveredCell) {
+    if (this.hoveredCell && this.info.drawHover) {
       this.renderer.ctx.fillStyle = this.info.cellHoverBackgroundColor;
       this.drawCell(this.hoveredCell.x, this.hoveredCell.y, this.info.cellSize);
     }
