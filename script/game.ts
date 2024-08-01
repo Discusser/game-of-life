@@ -259,6 +259,8 @@ export class Game {
   }
 
   onWheelOnCanvas(event: WheelEvent) {
+    event.preventDefault();
+
     const transform = this.renderer.ctx.getTransform();
     const transformed = this.transformCoordinates(this.renderer.canvas.width / 2, this.renderer.canvas.height / 2);
 
