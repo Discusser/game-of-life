@@ -52,7 +52,7 @@ export class GameInfo {
   private game: Game;
   private _generations: number = 0;
   private _gamePaused: boolean = true;
-  public generationInterval: number = 200; // this value is stored in ms
+  private _generationInterval: number = 200; // this value is stored in ms
   public cellSize: number = 16;
   public cellBorderColor: string | CanvasGradient | CanvasPattern = "rgba(100, 100, 100, 0.3)";
   public cellBackgroundColor: string | CanvasGradient | CanvasPattern = "black";
@@ -78,6 +78,14 @@ export class GameInfo {
   set gamePaused(value) {
     this._gamePaused = value;
     this.game.updateGameStatus();
+  }
+
+  get generationInterval() {
+    return this._generationInterval;
+  }
+
+  set generationInterval(value) {
+    this._generationInterval = Math.max(value, 1);
   }
 
   constructor(game: Game) {
