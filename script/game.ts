@@ -83,13 +83,22 @@ export class GameInfo {
   }
 }
 
+class GameRenderer {
+  public canvas: HTMLCanvasElement;
+  public ctx: CanvasRenderingContext2D;
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d")!;
+  }
+}
+
 export class Game {
   public info: GameInfo;
-  private canvas: HTMLCanvasElement;
+  private renderer: GameRenderer;
   private gameStatus: HTMLLabelElement;
   private generationCount: HTMLSpanElement;
   private populationCount: HTMLSpanElement;
-  private ctx: CanvasRenderingContext2D;
   private start: DOMHighResTimeStamp | undefined;
   private previousTimestamp: DOMHighResTimeStamp | undefined;
   private elapsed: DOMHighResTimeStamp = 0;
@@ -112,20 +121,21 @@ export class Game {
     populationCount: HTMLSpanElement,
   ) {
     this.info = new GameInfo(this);
-    this.canvas = canvas;
+    this.renderer = new GameRenderer(canvas);
     this.gameStatus = gameStatus;
     this.generationCount = generationCount;
     this.populationCount = populationCount;
-    this.ctx = canvas.getContext("2d")!;
 
-    this.canvas.addEventListener("contextmenu", (event) => this.onContextMenuOnCanvas(event));
-    this.canvas.addEventListener("wheel", (event) => this.onWheelOnCanvas(event));
-    this.canvas.addEventListener("mousedown", (event) => this.onMouseDownOnCanvas(event));
-    this.canvas.addEventListener("mouseup", (event) => this.onMouseUpOnCanvas(event));
-    this.canvas.addEventListener("mousemove", (event) => this.onMouseMoveOnCanvas(event));
-    this.canvas.addEventListener("mouseleave", (event) => this.onMouseLeaveCanvas(event));
-    this.canvas.addEventListener("click", (event) => this.onClickOnCanvas(event));
+    this.renderer.canvas.addEventListener("contextmenu", (event) => this.onContextMenuOnCanvas(event));
+    this.renderer.canvas.addEventListener("wheel", (event) => this.onWheelOnCanvas(event));
+    this.renderer.canvas.addEventListener("mousedown", (event) => this.onMouseDownOnCanvas(event));
+    this.renderer.canvas.addEventListener("mouseup", (event) => this.onMouseUpOnCanvas(event));
+    this.renderer.canvas.addEventListener("mousemove", (event) => this.onMouseMoveOnCanvas(event));
+    this.renderer.canvas.addEventListener("mouseleave", (event) => this.onMouseLeaveCanvas(event));
+    this.renderer.canvas.addEventListener("click", (event) => this.onClickOnCanvas(event));
   }
+
+  gameLoop() { }
 
   // HTML functions
   updateGameStatus() {
@@ -143,13 +153,13 @@ export class Game {
   drawGrid() {
     if (!this.info.drawGrid || this.scale <= 0.5) return;
 
-    const transform = this.ctx.getTransform();
+    const transform = this.renderer.ctx.getTransform();
     const x1 = Math.floor(-Math.abs(transform.e / this.info.cellSize / this.scale));
     const y1 = Math.floor(-Math.abs(transform.f / this.info.cellSize / this.scale));
-    const x2 = Math.ceil(this.canvas.width / this.info.cellSize / this.scale - x1);
-    const y2 = Math.ceil(this.canvas.height / this.info.cellSize / this.scale - y1);
+    const x2 = Math.ceil(this.renderer.canvas.width / this.info.cellSize / this.scale - x1);
+    const y2 = Math.ceil(this.renderer.canvas.height / this.info.cellSize / this.scale - y1);
 
-    this.ctx.strokeStyle = this.info.cellBorderColor;
+    this.renderer.ctx.strokeStyle = this.info.cellBorderColor;
     for (let x = x2; x >= x1; x--) {
       for (let y = y2; y >= y1; y--) {
         this.drawCellBorder(x, y, this.info.cellSize);
@@ -158,28 +168,28 @@ export class Game {
   }
 
   drawCells() {
-    this.ctx.strokeStyle = this.info.cellBorderColor;
-    this.ctx.fillStyle = this.info.cellLiveBackgroundColor;
+    this.renderer.ctx.strokeStyle = this.info.cellBorderColor;
+    this.renderer.ctx.fillStyle = this.info.cellLiveBackgroundColor;
     this.liveCells.map.forEach((pos) => {
       this.drawCell(pos.x, pos.y, this.info.cellSize);
     });
 
     if (this.hoveredCell) {
-      this.ctx.fillStyle = this.info.cellHoverBackgroundColor;
+      this.renderer.ctx.fillStyle = this.info.cellHoverBackgroundColor;
       this.drawCell(this.hoveredCell.x, this.hoveredCell.y, this.info.cellSize);
     }
   }
 
   drawCellBorder(column: number, row: number, cellSize: number) {
-    this.ctx.beginPath();
-    this.ctx.rect(column * cellSize, row * cellSize, cellSize, cellSize);
-    this.ctx.closePath();
-    this.ctx.stroke();
+    this.renderer.ctx.beginPath();
+    this.renderer.ctx.rect(column * cellSize, row * cellSize, cellSize, cellSize);
+    this.renderer.ctx.closePath();
+    this.renderer.ctx.stroke();
   }
 
   drawCell(column: number, row: number, cellSize: number) {
     this.drawCellBorder(column, row, cellSize);
-    this.ctx.fill();
+    this.renderer.ctx.fill();
   }
 
   drawFrame(timestamp: DOMHighResTimeStamp) {
@@ -191,10 +201,10 @@ export class Game {
     if (this.fpsValues.length > this.maxFpsValues) this.fpsValues.splice(0, this.fpsValues.length - this.maxFpsValues);
     if (deltaTime != 0) this.fpsValues.push((1 / deltaTime) * 1000);
 
-    const previousTransform = this.ctx.getTransform();
-    this.ctx.setTransform(new DOMMatrix());
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.setTransform(previousTransform);
+    const previousTransform = this.renderer.ctx.getTransform();
+    this.renderer.ctx.setTransform(new DOMMatrix());
+    this.renderer.ctx.clearRect(0, 0, this.renderer.canvas.width, this.renderer.canvas.height);
+    this.renderer.ctx.setTransform(previousTransform);
     this.drawGrid();
     this.drawCells();
 
@@ -214,8 +224,8 @@ export class Game {
   }
 
   onWheelOnCanvas(event: WheelEvent) {
-    const transform = this.ctx.getTransform();
-    const transformed = this.transformCoordinates(this.canvas.width / 2, this.canvas.height / 2);
+    const transform = this.renderer.ctx.getTransform();
+    const transformed = this.transformCoordinates(this.renderer.canvas.width / 2, this.renderer.canvas.height / 2);
 
     let scaleMultiplier = 1 - 0.2 * Math.sign(event.deltaY);
     const newScale = transform.a * scaleMultiplier;
@@ -225,7 +235,7 @@ export class Game {
     transform.scaleSelf(scaleMultiplier, scaleMultiplier, 1, transformed.x, transformed.y);
     this.scale = transform.a;
 
-    this.ctx.setTransform(transform);
+    this.renderer.ctx.setTransform(transform);
   }
 
   onMouseDownOnCanvas(event: MouseEvent) {
@@ -247,7 +257,7 @@ export class Game {
     else this.hoveredCell = this.getCellAtCoordinates(event.offsetX, event.offsetY);
 
     if (this.canPan) {
-      const transform = this.ctx.getTransform();
+      const transform = this.renderer.ctx.getTransform();
       const scaledSize = this.info.cellSize * this.scale;
       this.mouseMovement[0] += event.movementX;
       this.mouseMovement[1] += event.movementY;
@@ -259,7 +269,7 @@ export class Game {
         transform.f += Math.trunc(this.mouseMovement[1] / scaledSize) * scaledSize;
         this.mouseMovement[1] = this.mouseMovement[1] % scaledSize;
       }
-      this.ctx.setTransform(transform);
+      this.renderer.ctx.setTransform(transform);
     }
   }
 
@@ -360,8 +370,8 @@ export class Game {
   }
 
   getCellAtCoordinates(x: number, y: number) {
-    x = clamp(x, 0, this.canvas.width);
-    y = clamp(y, 0, this.canvas.height);
+    x = clamp(x, 0, this.renderer.canvas.width);
+    y = clamp(y, 0, this.renderer.canvas.height);
     const transformed = this.transformCoordinates(x, y);
 
     const column = Math.floor(transformed.x / this.info.cellSize);
@@ -371,7 +381,7 @@ export class Game {
   }
 
   transformCoordinates(x: number, y: number) {
-    const transform = this.ctx.getTransform().inverse();
+    const transform = this.renderer.ctx.getTransform().inverse();
     return {
       x: transform.a * x + transform.c * y + transform.e,
       y: transform.b * x + transform.d * y + transform.f,
