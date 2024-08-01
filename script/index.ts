@@ -1,4 +1,4 @@
-import { Game } from "./game.js";
+import { DrawMode, Game } from "./game.js";
 
 const gameContainer = document.querySelector<HTMLCanvasElement>(".game-container")!;
 const gameStatus = document.querySelector<HTMLLabelElement>(".game-status")!;
@@ -24,6 +24,14 @@ document.querySelector(".button-reset")?.addEventListener("click", () => {
 
 document.querySelector(".button-toggle-grid")?.addEventListener("click", () => {
   game.info.drawGrid = !game.info.drawGrid;
+});
+
+document.querySelector(".button-draw-mode")?.addEventListener("click", (event) => {
+  game.info.drawMode = game.info.drawMode == DrawMode.Create ? DrawMode.Erase : DrawMode.Create;
+  const target = event.target;
+  if (target instanceof HTMLInputElement) {
+    target.value = game.info.drawMode == DrawMode.Create ? "Create mode" : "Erase mode";
+  }
 });
 
 document.querySelector(".option-generation-interval")?.addEventListener("input", (event: Event) => {

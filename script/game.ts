@@ -59,6 +59,7 @@ export class GameInfo {
   public cellLiveBackgroundColor: string | CanvasGradient | CanvasPattern = "white";
   public cellHoverBackgroundColor: string | CanvasGradient | CanvasPattern = "lightgray";
   public drawGrid: boolean = true;
+  public drawMode: DrawMode = DrawMode.Create;
 
   get generations() {
     return this._generations;
@@ -93,16 +94,25 @@ class GameRenderer {
   }
 }
 
+export enum DrawMode {
+  Create,
+  Erase,
+}
+
+enum MouseButton {
+  Left = 0,
+  Middle = 1,
+  Right = 2,
+}
+
 export class Game {
   public info: GameInfo;
   private renderer: GameRenderer;
   private gameStatus: HTMLLabelElement;
   private generationCount: HTMLSpanElement;
   private populationCount: HTMLSpanElement;
-  private renderStart: DOMHighResTimeStamp | undefined;
   private renderPreviousTimestamp: DOMHighResTimeStamp | undefined;
   private renderElapsed: DOMHighResTimeStamp = 0;
-  private simulationStart: DOMHighResTimeStamp | undefined;
   private simulationPreviousTimestamp: DOMHighResTimeStamp | undefined;
   private simulationElapsed: DOMHighResTimeStamp = 0;
   private nextLiveCells: GeneralSet<Position> = new GeneralSet();
@@ -110,8 +120,7 @@ export class Game {
   private hoveredCell: Position | undefined;
   private maxFpsValues = 10;
   private fpsValues: Array<number> = new Array(this.maxFpsValues);
-  private canPan: boolean = false;
-  private mouseButtonHeld: number | undefined;
+  private mouseButtonHeld: MouseButton | undefined;
   private scale: number = 1;
   private maxScale: number = 3;
   private minScale: number = 0.05;
@@ -145,7 +154,6 @@ export class Game {
 
   update() {
     const timestamp = performance.now();
-    if (this.simulationStart === undefined) this.simulationStart = timestamp;
     if (this.simulationPreviousTimestamp === undefined) this.simulationPreviousTimestamp = timestamp;
     const deltaTime = timestamp - this.simulationPreviousTimestamp;
     this.simulationElapsed += deltaTime;
@@ -192,7 +200,10 @@ export class Game {
     this.renderer.ctx.strokeStyle = this.info.cellBorderColor;
     this.renderer.ctx.fillStyle = this.info.cellLiveBackgroundColor;
     this.liveCells.map.forEach((pos) => {
-      this.drawCell(pos.x, pos.y, this.info.cellSize);
+      this.drawCellNoBorder(pos.x, pos.y, this.info.cellSize);
+    });
+    this.liveCells.map.forEach((pos) => {
+      this.drawCellBorder(pos.x, pos.y, this.info.cellSize);
     });
 
     if (this.hoveredCell) {
@@ -208,13 +219,22 @@ export class Game {
     this.renderer.ctx.stroke();
   }
 
+  drawCellNoBorder(column: number, row: number, cellSize: number) {
+    this.renderer.ctx.beginPath();
+    this.renderer.ctx.rect(column * cellSize, row * cellSize, cellSize, cellSize);
+    this.renderer.ctx.closePath();
+    this.renderer.ctx.fill();
+  }
+
   drawCell(column: number, row: number, cellSize: number) {
-    this.drawCellBorder(column, row, cellSize);
+    this.renderer.ctx.beginPath();
+    this.renderer.ctx.rect(column * cellSize, row * cellSize, cellSize, cellSize);
+    this.renderer.ctx.closePath();
+    this.renderer.ctx.stroke();
     this.renderer.ctx.fill();
   }
 
   drawFrame(timestamp: DOMHighResTimeStamp) {
-    if (this.renderStart === undefined) this.renderStart = timestamp;
     if (this.renderPreviousTimestamp === undefined) this.renderPreviousTimestamp = timestamp;
     const deltaTime = timestamp - this.renderPreviousTimestamp;
     this.renderElapsed += deltaTime;
@@ -256,12 +276,10 @@ export class Game {
 
   onMouseDownOnCanvas(event: MouseEvent) {
     this.mouseButtonHeld = event.button;
-    if (this.mouseButtonHeld == 2) this.canPan = true;
   }
 
   onMouseUpOnCanvas(_: MouseEvent) {
-    if (this.mouseButtonHeld == 2) {
-      this.canPan = false;
+    if (this.mouseButtonHeld == MouseButton.Right) {
       this.mouseMovement = [0, 0];
     }
     this.mouseButtonHeld = undefined;
@@ -269,10 +287,10 @@ export class Game {
 
   onMouseMoveOnCanvas(event: MouseEvent) {
     // Don't display hovered cell when holding right click
-    if (this.mouseButtonHeld == 2) this.hoveredCell = undefined;
+    if (this.mouseButtonHeld == MouseButton.Right) this.hoveredCell = undefined;
     else this.hoveredCell = this.getCellAtCoordinates(event.offsetX, event.offsetY);
 
-    if (this.canPan) {
+    if (this.mouseButtonHeld == MouseButton.Right) {
       const transform = this.renderer.ctx.getTransform();
       const scaledSize = this.info.cellSize * this.scale;
       this.mouseMovement[0] += event.movementX;
@@ -286,21 +304,26 @@ export class Game {
         this.mouseMovement[1] = this.mouseMovement[1] % scaledSize;
       }
       this.renderer.ctx.setTransform(transform);
+    } else if (this.mouseButtonHeld == MouseButton.Left && this.hoveredCell) {
+      if (this.info.drawMode == DrawMode.Create) {
+        this.liveCells.add(this.hoveredCell);
+      } else if (this.info.drawMode == DrawMode.Erase) {
+        this.liveCells.delete(this.hoveredCell);
+      }
     }
   }
 
   onMouseLeaveCanvas(_: MouseEvent) {
     this.hoveredCell = undefined;
     this.mouseButtonHeld = undefined;
-    this.canPan = false;
   }
 
   onClickOnCanvas(event: MouseEvent) {
     const position = this.getCellAtCoordinates(event.offsetX, event.offsetY);
 
-    if (this.liveCells.has(position)) {
+    if (this.info.drawMode == DrawMode.Erase) {
       this.liveCells.delete(position);
-    } else {
+    } else if (this.info.drawMode == DrawMode.Create) {
       this.liveCells.add(position);
     }
 
@@ -320,8 +343,9 @@ export class Game {
     this.liveCells = new GeneralSet();
     this.nextLiveCells = new GeneralSet();
     this.renderPreviousTimestamp = undefined;
-    this.renderStart = undefined;
     this.renderElapsed = 0;
+    this.simulationPreviousTimestamp = undefined;
+    this.simulationElapsed = 0;
 
     this.updateGameStatistics();
     this.updateGameStatus();
